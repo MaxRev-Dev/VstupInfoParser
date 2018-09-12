@@ -12,7 +12,7 @@ namespace VstupInfoParser.Models_JSON
         [JsonProperty("gID")]
         public int GlobalID { get; private set; }
         [JsonProperty("students")]
-        public List<Students> Students { get; } = new List<Students>();
+        public List<Student> Students { get; } = new List<Student>();
         [JsonProperty("degree")]
         [JsonConverter(typeof(StringEnumConverter))]
         public Institute.Degree Degree { get; }
@@ -26,7 +26,7 @@ namespace VstupInfoParser.Models_JSON
         public string Faculty => Map?.Where(x => x.Key.ToLower().Contains("факул"))
                     .FirstOrDefault().Value;
     }
-    public partial class Students
+    public partial class Student
     {
         [JsonProperty("id")]
         public int Id { get; set; }
@@ -41,9 +41,26 @@ namespace VstupInfoParser.Models_JSON
         [JsonProperty("detail")]
         public string Detail { get; set; }
         [JsonProperty("quote")]
-        public bool Quote { get; set; }
+        public string Quote { get; set; }
         [JsonProperty("origs")]
         public bool Origs { get; set; }
+
+        [JsonProperty("doc_aver")]
+        public string DocumentAverage => StrOrNull("бал доку");
+        [JsonProperty("spec_contest")]
+        public string SpecialtyContest => StrOrNull("фахове випробув");
+        [JsonProperty("foreign_lang")]
+        public string ForeignLang => StrOrNull("іноземна");
+        private string StrOrNull(string str)
+        {
+            var d = _map.Where(x => x.Key.Contains(str)).FirstOrDefault();
+            return d.Equals(new KeyValuePair<string, string>()) ? null :
+                (d.Value ?? d.Key.Split(' ').Last());
+        }
+        private Dictionary<string, string> _map => Detail.Split('\n', StringSplitOptions.RemoveEmptyEntries).
+                Select(x => x.Split(':')).
+                Select(x => new KeyValuePair<string, string>(x[0], x.Length>1?x[1]:null)).Distinct()
+                .ToDictionary(x => x.Key.ToLower(), y => y.Value);
     }
     public partial class Institute
     {
@@ -82,6 +99,7 @@ namespace VstupInfoParser.Models_JSON
             Map(x => x.Name);
             Map(x => x.Url);
             Map(x => x.Faculty);
+            
             Map(x => x.OnProcessError).Ignore();
             Map(x => x.Fetched).Ignore();
         }
@@ -93,11 +111,12 @@ namespace VstupInfoParser.Models_JSON
             Map(x => x.Name);
             Map(x => x.Type);
             Map(x => x.Url);
+
             Map(x => x.OnProcessError).Ignore();
             Map(x => x.Fetched).Ignore();
         }
     }
-    public sealed class StudentsMap : ClassMap<Students>
+    public sealed class StudentsMap : ClassMap<Student>
     {
         public StudentsMap()
         {

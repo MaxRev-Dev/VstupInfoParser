@@ -61,24 +61,26 @@ namespace VstupInfoParser
             }
             if (Info.Query.HasKey("to_files"))
             {
-                List<IEnumerable<Students>> list = new List<IEnumerable<Students>>();
+                List<IEnumerable<Student>> list = new List<IEnumerable<Student>>();
                 List<string> names = new List<string>();
                 foreach (var i in obj)
                 {
                     await i.Fetch();
-                    names.Add(i.Name + '_' + i.GlobalID);
+                    names.Add(i.Name + '_' + year + '_' + i.GlobalID);
                     list.Add(i.Students);
                 }
-                return AsFileResponse(list,names, typeof(StudentsMap));
+                return AsFileResponse(list, names, typeof(StudentsMap),
+                    string.Join('_', Uri.UnescapeDataString(region), Uri.UnescapeDataString(namePart), year, type, degree));
             }
-            else
-                return GetResponse(obj, typeof(SpecialtyMap));
+            return GetResponse(obj, typeof(SpecialtyMap));
         }
 
-        private ApiResponse AsFileResponse<T>(IEnumerable<IEnumerable<T>> obj, IEnumerable<string> names, Type type)
+        private ApiResponse AsFileResponse<T>(IEnumerable<IEnumerable<T>> obj,
+            IEnumerable<string> names, Type type, string archName = null)
         {
             return new ApiResponse(new ResponseInfo(
-                obj.ToCsvFile(names,Server.DirectoryManager[MainApp.Dirs.tmp_csv],  type, "/csv/"),
+                obj.ToCsvFile(names, Server.DirectoryManager[MainApp.Dirs.tmp_csv],
+                type, "/csv/", archName),
                 "text/plain"));
         }
 
@@ -89,7 +91,9 @@ namespace VstupInfoParser
             var obj = await GetForSpecialtyQuery(year, region, namePart, type);
             var p_degree = (Institute.Degree)Enum.Parse(typeof(Institute.Degree), degree);
             var q = obj
-                .Where(x => x.Degree == p_degree).Where(x => x.GlobalID == gID).FirstOrDefault();
+                .Where(x => x.Degree == p_degree)
+                .Where(x => x.GlobalID == gID)
+                .FirstOrDefault();
             await q.Fetch();
             return GetResponse(q.Students, typeof(SpecialtyMap));
         }

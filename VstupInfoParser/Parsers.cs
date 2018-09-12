@@ -29,22 +29,61 @@ namespace VstupInfoParser.Models_JSON
         protected override void Parse(HtmlDocument doc)
         {
             var accs = doc.DocumentNode.Descendants().Where
-                 (x => x.Name == "table" && x.HasClass("tablesaw")).FirstOrDefault();
+                 (x => x.Name == "table" && x.HasClass("tablesaw"))
+                 .Where(x => x.Descendants("td").Count() > 4);
 
-            foreach (var i in accs.Descendants("tbody").First().Descendants("tr"))
+
+            foreach (var tb in accs.Where(s => s.Descendants("tbody").Count() > 0))
             {
-                var cells = i.Descendants("td");
-                string proc(string a) => WebUtility.HtmlDecode(a).Trim();
-                if (cells.Count() < 4) continue;
-                var id = int.Parse(proc(cells.ElementAt(0).InnerText));
-                var name = proc(cells.ElementAt(1).InnerText);
-                var priority = proc(cells.ElementAt(2).InnerText);
-                var cb = proc(cells.ElementAt(3).InnerText);
-                var state = proc(cells.ElementAt(4).InnerText);
-                var detail = proc(cells.ElementAt(5).InnerText);
-                var quote = proc(cells.ElementAt(6).InnerText) == "+";
-                var origs = proc(cells.ElementAt(7).InnerText) == "+";
-                Students.Add(new Students(id, name, priority, cb, state, detail, quote, origs));
+                var header = tb.Descendants("thead")
+                    .Where(x => x.Descendants("th").Count() > 4).FirstOrDefault()?
+                    .Descendants("th")
+                    .Select((x, i) => new KeyValuePair<int, string>(i, x.GetAttributeValue("title", null)))
+                    .ToDictionary(x => x.Key, x => x.Value);
+                foreach (var i in tb.Descendants("tbody").FirstOrDefault()?.Descendants("tr"))
+                {
+                    var cells = i.Descendants("td");
+                    string proc(string a) => WebUtility.HtmlDecode(a).Trim();
+                    if (cells.Count() < 4) continue;
+                    int p = 0;
+
+                    string SetAndGoNext() => proc(cells.ElementAt(p++).InnerText);
+                    bool IsMatch(string ename) => header[p].ToLower().Contains(ename);
+                    string SplitCellToMap() => proc(string.Join('\n', (cells.ElementAt(p++).InnerHtml.Split("<br>", StringSplitOptions.RemoveEmptyEntries)
+                            .Select(x => Regex.Replace(x, @"<(?:\/|).*?>", "")))));
+
+                    var id = int.Parse(SetAndGoNext()); //const anywhere
+                    var name = SetAndGoNext(); //const also
+
+                    // collumns are not on same indexes
+                    // so we do the trick with headers starting from 2 index
+                    var priority = IsMatch("пріоритет") && (Degree != Institute.Degree.Magister)
+                        ? SetAndGoNext() : null;
+                    var status = !IsMatch("статус") ? null : (SetAndGoNext());
+                    bool prioSet = IsMatch("пріоритет");
+                    var contMark = prioSet ? null : SetAndGoNext();
+                    priority = !prioSet ? priority : SetAndGoNext();
+                    contMark = IsMatch("конкурсний бал") ? SetAndGoNext() : contMark;
+                    contMark = IsMatch("конкурсний бал") ? SetAndGoNext() : contMark;
+                    status = IsMatch("статус") ? SetAndGoNext() : status;
+                    var details = IsMatch("детал") ? SplitCellToMap() : null;
+                    details = IsMatch("детал") ? SplitCellToMap() : details;
+                    var coef = IsMatch("коефіц") ? SplitCellToMap() : null;
+                    var quote = IsMatch("квот") ? SetAndGoNext() : null;
+                    var origs = SetAndGoNext() == "+";
+
+                    Students.Add(new Student()
+                    {
+                        Id = id,
+                        Name = name,
+                        Status = status,
+                        Priority = priority,
+                        ContestMark = contMark,
+                        Detail = details,
+                        Quote = quote,
+                        Origs = origs
+                    });
+                }
             }
         }
 
@@ -54,20 +93,9 @@ namespace VstupInfoParser.Models_JSON
         }
     }
 
-    public partial class Students
+    public partial class Student
     {
-        public Students(int id, string name, string priority, string cb,
-            string state, string detail, bool quote, bool origs)
-        {
-            Id = id;
-            Name = name;
-            Priority = priority;
-            ContestMark = cb;
-            State = state;
-            Detail = detail;
-            Quote = quote;
-            Origs = origs;
-        }
+        public string Status { get; internal set; }
     }
 
     #endregion
@@ -153,15 +181,16 @@ namespace VstupInfoParser.Models_JSON
 
                         var abtn = tr.Descendants("td").ElementAt(1).Descendants("a").FirstOrDefault();
                         var link = abtn == default ? null : '/' + Year.ToString() + abtn?.GetAttributeValue("href", null).Trim('.');
+
                         if (!Specialties.ContainsKey(stypev))
                             Specialties[stypev] = new List<Specialty>();
-                        var namex = map.Where(x => x.Key.ToLower(new CultureInfo("uk-UA"))
-                        .Contains("Освітня прог".ToLower(new CultureInfo("uk-UA")))).FirstOrDefault();
+                        var namex = map.Where(x => x.Key.ToLower()
+                        .Contains("освітня прог".ToLower())).FirstOrDefault();
                         if (string.IsNullOrEmpty(namex.Key))
                         {
-                            namex = map.Where(x => x.Key.ToLower(new CultureInfo("uk-UA"))
-                        .Contains("Спеціальн".ToLower(new CultureInfo("uk-UA")))).FirstOrDefault();
-                        } 
+                            namex = map.Where(x => x.Key.ToLower()
+                            .Contains("спеціальн".ToLower())).FirstOrDefault();
+                        }
                         var g = link?.Substring(link.LastIndexOf('p') + 1).Replace(".html", "");
                         var gID = link == default ? -1 : int.Parse(g);
                         if (link == null) continue;
