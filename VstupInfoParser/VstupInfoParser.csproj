@@ -13,10 +13,4 @@
     <PackageReference Include="Newtonsoft.Json" Version="11.0.2" />
   </ItemGroup>
 
-  <ItemGroup>
-    <Reference Include="MaxRev.Servers.Core">
-      <HintPath>E:\MSR_PUB\MaxRev.Servers.Core.dll</HintPath>
-    </Reference>
-  </ItemGroup>
-
 </Project>
