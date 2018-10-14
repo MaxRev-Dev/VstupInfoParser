@@ -15,7 +15,7 @@ namespace VstupInfoParser
 
             var server = Core.GetServer("VstupInfoParser", 3000);
 
-            server.SetApiController(typeof(Api));
+            server.SetApiControllers(typeof(Api));
             server.DirectoryManager.AddDir(Dirs.tmp_csv, "tmp_csv");
             server.Config.Main.AccessFolders.Add("/csv", server.DirectoryManager[Dirs.tmp_csv]);
             server.EventMaster.ServerStarting += EventMaster_ServerStarting;
