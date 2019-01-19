@@ -1,8 +1,8 @@
 ﻿using System.Linq;
 using System.Threading.Tasks;
-using VstupInfoParser.Models_JSON;
+using VstupInfoParser.ModelsJSON;
 
-namespace VstupInfoParser
+namespace VstupInfoParser.Parsers
 {
     // basic usage
     //var region = GetForRegion(2018, "Київ");
@@ -49,7 +49,7 @@ namespace VstupInfoParser
         {
             if (GetForYear(year) is var table && table != null)
             {
-                return table.Regions.Values.Where(x => x.Name.Contains(regionName)).FirstOrDefault() as Region;
+                return table.Regions.Values.FirstOrDefault(x => x.Name.Contains(regionName)) as Region;
             }
             return default;
         }

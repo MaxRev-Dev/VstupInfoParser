@@ -1,46 +1,45 @@
-﻿using MR.Servers;
-using MR.Servers.Api;
-using MR.Servers.Core.Route.Attributes;
-using MR.Servers.Utils;
+﻿using MaxRev.Servers.API;
+using MaxRev.Servers.Core.Route;
+using MaxRev.Servers.Interfaces;
+using MaxRev.Utils.Methods;
 using System;
 using System.Collections.Generic;
 using System.Globalization;
 using System.Linq;
 using System.Threading.Tasks;
 using VstupInfoParser.Extensions;
-using VstupInfoParser.Models_JSON;
+using VstupInfoParser.ModelsJSON;
+using VstupInfoParser.Parsers;
 
 namespace VstupInfoParser
 {
     [RouteBase("api")]
-    internal class Api : CoreAPI
+    internal class Api : CoreApi
     {
-        private readonly CultureInfo ci = new CultureInfo("uk-UA");
+        private readonly CultureInfo _ci = new CultureInfo("uk-UA");
         [Route("regions")]
-        public ApiResponse GetMainTable()
+        public IResponseInfo GetMainTable()
         {
-            return new ApiResponse(new ResponseInfo(
-                CoreParser.Current.RegionTable.Serialize()));
+            return Ok(CoreParser.Current.RegionTable.Serialize());
         }
         [Route("region/{year}/{name}")]
-        public async Task<ApiResponse> GetMainTable(int year, string name)
+        public async Task<IResponseInfo> GetMainTable(int year, string name)
         {
             var reg = await GetRegion(year, name);
 
-            return new ApiResponse(new ResponseInfo(
-                    reg.Institutes.Distinct().Serialize()));
+            return Ok(reg.Institutes.Distinct().Serialize());
         }
         [Route("instances/{year}/{region}/{namePart}")]
-        public async Task<ApiResponse> GetMainTable(int year, string region, string namePart)
+        public async Task<IResponseInfo> GetMainTable(int year, string region, string namePart)
         {
             var reg = await GetRegion(year, region);
-            var obj = reg.Institutes.Where(x => x.Name.ToLower(ci).Contains(
-                           Uri.UnescapeDataString(namePart).ToLower(ci))).Distinct();
+            var obj = reg.Institutes.Where(x => x.Name.ToLower(_ci).Contains(
+                           Uri.UnescapeDataString(namePart).ToLower(_ci))).Distinct();
             return GetResponse(obj, typeof(InstituteMap));
         }
 
         [Route("instance/{year}/{region}/{namePart}/{type}")]
-        public async Task<ApiResponse> GetForSpecialty
+        public async Task<IResponseInfo> GetForSpecialty
             (int year, string region, string namePart, string type)
         {
             var obj = await GetForSpecialtyQuery(year, region, namePart, type);
@@ -48,12 +47,12 @@ namespace VstupInfoParser
         }
 
         [Route("instance/{year}/{region}/{namePart}/{type}/{degree}")]
-        public async Task<ApiResponse> GetForSpecialtyType
+        public async Task<IResponseInfo> GetForSpecialtyType
             (int year, string region, string namePart, string type, string degree)
         {
-            var p_degree = (Institute.Degree)Enum.Parse(typeof(Institute.Degree), degree);
+            var pDegree = (Institute.Degree)Enum.Parse(typeof(Institute.Degree), degree);
             var obj = (await GetForSpecialtyQuery(year, region, namePart, type))
-                .Where(x => x.Degree == p_degree);
+                .Where(x => x.Degree == pDegree);
             if (Info.Query.HasKey("faculty"))
             {
                 obj = obj.Where(x => x.Faculty != null &&
@@ -66,7 +65,7 @@ namespace VstupInfoParser
                 foreach (var i in obj)
                 {
                     await i.Fetch();
-                    names.Add(i.Name + '_' + year + '_' + i.GlobalID);
+                    names.Add(i.Name + '_' + year + '_' + i.GlobalId);
                     list.Add(i.Students);
                 }
                 return AsFileResponse(list, names, typeof(StudentsMap),
@@ -75,41 +74,43 @@ namespace VstupInfoParser
             return GetResponse(obj, typeof(SpecialtyMap));
         }
 
-        private ApiResponse AsFileResponse<T>(IEnumerable<IEnumerable<T>> obj,
+        private IResponseInfo AsFileResponse<T>(IEnumerable<IEnumerable<T>> obj,
             IEnumerable<string> names, Type type, string archName = null)
         {
-            return new ApiResponse(new ResponseInfo(
-                obj.ToCsvFile(names, Server.DirectoryManager[MainApp.Dirs.tmp_csv],
+            return Ok(
+                obj.ToCsvFile(names, Server.DirectoryManager[MainApp.Dirs.TmpCsv],
                 type, "/csv/", archName),
-                "text/plain"));
+                "text/plain");
         }
 
         [Route("instance/{year}/{region}/{namePart}/{type}/{degree}/{gID}")]
-        public async Task<ApiResponse> GetForGlobalID
-            (int year, string region, string namePart, string type, string degree, int gID)
+        public async Task<IResponseInfo> GetForGlobalId
+            (int year, string region, string namePart, string type, string degree, int gId)
         {
             var obj = await GetForSpecialtyQuery(year, region, namePart, type);
-            var p_degree = (Institute.Degree)Enum.Parse(typeof(Institute.Degree), degree);
+            var pDegree = (Institute.Degree)Enum.Parse(typeof(Institute.Degree), degree);
             var q = obj
-                .Where(x => x.Degree == p_degree)
-                .Where(x => x.GlobalID == gID)
-                .FirstOrDefault();
-            await q.Fetch();
-            return GetResponse(q.Students, typeof(SpecialtyMap));
+                .Where(x => x.Degree == pDegree)
+                .FirstOrDefault(x => x.GlobalId == gId);
+            if (q != default)
+            {
+                await q.Fetch();
+                return GetResponse(q.Students, typeof(SpecialtyMap));
+            }
+
+            return NotFound();
         }
 
 
-        private ApiResponse GetResponse<T>(IEnumerable<T> obj, Type type = null)
+        private IResponseInfo GetResponse<T>(IEnumerable<T> obj, Type type = null)
         {
             var text = obj.ToCsv(type);
             if (Info.Query.HasKey("csv"))
             {
-                return new ApiResponse(new ResponseInfo(
-                   text, "text/csv"));
+                return Builder.Content(text).ContentType("text/csv").Build();
             }
             else
-                return new ApiResponse(new ResponseInfo(
-                      obj.Serialize()));
+                return Ok(obj.Serialize());
         }
 
         private async Task<Region> GetRegion(int year, string name)
@@ -123,12 +124,13 @@ namespace VstupInfoParser
             (int year, string region, string namePart, string type)
         {
             var reg = await GetRegion(year, region);
-            var obj = reg.Institutes.Where(x => x.Name.ToLower(ci).Contains(
-                           Uri.UnescapeDataString(namePart).ToLower(ci))).Distinct().FirstOrDefault();
+            var obj = reg.Institutes.Where(x => x.Name.ToLower(_ci).Contains(
+                           Uri.UnescapeDataString(namePart).ToLower(_ci))).Distinct().FirstOrDefault();
+            if (obj == default) return default;
             await obj.Fetch();
-            var p_type = (Institute.StudyType)Enum.Parse(typeof(Institute.StudyType), type);
+            var pType = (Institute.StudyType)Enum.Parse(typeof(Institute.StudyType), type);
 
-            return obj.Specialties[p_type];
+            return obj.Specialties[pType];
         }
     }
 }

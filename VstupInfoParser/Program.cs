@@ -4,7 +4,7 @@
     {
         private static void Main(string[] args)
         {
-            MainApp.GetApp.Initialize();
+            MainApp.GetApp.Initialize(args);
         }
     }
 }

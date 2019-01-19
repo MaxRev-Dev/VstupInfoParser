@@ -1,10 +1,10 @@
-﻿using CsvHelper;
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.IO;
 using System.IO.Compression;
 using System.Linq;
 using System.Text;
+using CsvHelper;
 
 namespace VstupInfoParser.Extensions
 {
@@ -22,9 +22,9 @@ namespace VstupInfoParser.Extensions
             for (int i = 0; i < records.Count; i++)
             {
                 var md5 = names[i].Replace(" ", "_") + ".csv";
-                var res_path = Path.Combine(path, md5);
-                res.Add(res_path);
-                using (var streamWriter = new StreamWriter(res_path, false, Encoding.GetEncoding(1251)))
+                var resPath = Path.Combine(path, md5);
+                res.Add(resPath);
+                using (var streamWriter = new StreamWriter(resPath, false, Encoding.GetEncoding(1251)))
                 using (var csvWriter = new CsvWriter(streamWriter))
                 {
                     if (map != null)
@@ -32,14 +32,18 @@ namespace VstupInfoParser.Extensions
                         {
                             csvWriter.Configuration.RegisterClassMap(map);
                         }
-                        catch { }
+                        catch
+                        {
+                            // ignored
+                        }
+
                     try
                     {
                         csvWriter.WriteRecords(records[i]);
                     }
                     catch
                     {
-
+                        // ignored
                     }
                 }
                 var f = (fromWeb ?? "") + md5;
@@ -72,15 +76,20 @@ namespace VstupInfoParser.Extensions
                     {
                         csvWriter.Configuration.RegisterClassMap(map);
                     }
-                    catch { }
+                    catch
+                    {
+                        // ignored
+                    }
+
                 try
                 {
                     csvWriter.WriteRecords(records);
                 }
                 catch
                 {
-
+                    // ignored
                 }
+
                 streamWriter.Flush();
                 return Encoding.UTF8.GetString(memoryStream.ToArray());
             }
