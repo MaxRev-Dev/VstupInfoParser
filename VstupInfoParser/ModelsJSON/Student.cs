@@ -5,8 +5,9 @@ using Newtonsoft.Json;
 
 namespace VstupInfoParser.ModelsJSON
 {
-    public partial class Student
+    public class Student
     {
+        public string Status { get; internal set; }
         [JsonProperty("id")]
         public int Id { get; set; }
         [JsonProperty("name")]

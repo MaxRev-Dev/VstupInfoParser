@@ -1,10 +1,12 @@
-﻿namespace VstupInfoParser
+﻿using System.Threading.Tasks;
+
+namespace VstupInfoParser
 {
     internal class Program
     {
-        private static void Main(string[] args)
+        private static Task Main(string[] args)
         {
-            MainApp.GetApp.Initialize(args);
+            return MainApp.GetApp.Initialize(args);
         }
     }
 }

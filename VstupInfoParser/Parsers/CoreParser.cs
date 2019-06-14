@@ -15,30 +15,23 @@ namespace VstupInfoParser.Parsers
     internal class CoreParser
     {
         private const string Host = "http://www.vstup.info/";
-        private static CoreParser _parser;
-        public static CoreParser Current { get; } = _parser ?? (_parser = new CoreParser());
-        public CoreParser()
-        {
-            _parser = this;
-        }
-        public DynamicRegionTable RegionTable { get; set; }
+        public DynamicRegionTable RegionTable { get; private set; }
 
-        public string FromBase(string url)
+        public static string FromBase(string url)
         {
             if (url == null) return null;
             return Host.Trim('/') + url.Trim('.');
         }
-        internal async Task FetchTable()
+        internal async Task FetchTableAsync()
         {
             var drt = new DynamicRegionTable(Host);
-            await drt.Fetch();
+            await drt.FetchAsync();
             RegionTable = drt;
-
         }
 
         private RegionTable GetForYear(int year)
         {
-            if (RegionTable.Years.ContainsKey(year))
+            if (RegionTable != null && RegionTable.Years.ContainsKey(year))
             {
                 return RegionTable.Years[year];
             }

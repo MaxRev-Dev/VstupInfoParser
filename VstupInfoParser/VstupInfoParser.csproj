@@ -7,10 +7,11 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="CsvHelper" Version="12.1.1" />
-    <PackageReference Include="HtmlAgilityPack" Version="1.8.13" />
-    <PackageReference Include="MaxRev.Servers.Core" Version="0.6.3.50" />
-    <PackageReference Include="Newtonsoft.Json" Version="12.0.1" />
+    <PackageReference Include="CsvHelper" Version="12.1.2" />
+    <PackageReference Include="HtmlAgilityPack" Version="1.11.7" />
+    <PackageReference Include="MaxRev.Servers.Core" Version="0.7.1.16" />
+    <PackageReference Include="Microsoft.Extensions.DependencyInjection" Version="2.2.0" />
+    <PackageReference Include="Newtonsoft.Json" Version="12.0.2" />
   </ItemGroup>
 
 </Project>

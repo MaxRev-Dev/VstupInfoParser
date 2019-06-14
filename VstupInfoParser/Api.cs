@@ -4,9 +4,9 @@ using MaxRev.Servers.Interfaces;
 using MaxRev.Utils.Methods;
 using System;
 using System.Collections.Generic;
-using System.Globalization;
 using System.Linq;
 using System.Threading.Tasks;
+using Microsoft.Extensions.DependencyInjection;
 using VstupInfoParser.Extensions;
 using VstupInfoParser.ModelsJSON;
 using VstupInfoParser.Parsers;
@@ -16,11 +16,13 @@ namespace VstupInfoParser
     [RouteBase("api")]
     internal class Api : CoreApi
     {
-        private readonly CultureInfo _ci = new CultureInfo("uk-UA");
+        private CoreParser CurrentParser => Services.GetRequiredService<CoreParser>();
+
+
         [Route("regions")]
         public IResponseInfo GetMainTable()
         {
-            return Ok(CoreParser.Current.RegionTable.Serialize());
+            return Ok(CurrentParser.RegionTable.Serialize());
         }
         [Route("region/{year}/{name}")]
         public async Task<IResponseInfo> GetMainTable(int year, string name)
@@ -33,8 +35,8 @@ namespace VstupInfoParser
         public async Task<IResponseInfo> GetMainTable(int year, string region, string namePart)
         {
             var reg = await GetRegion(year, region);
-            var obj = reg.Institutes.Where(x => x.Name.ToLower(_ci).Contains(
-                           Uri.UnescapeDataString(namePart).ToLower(_ci))).Distinct();
+            var obj = reg.Institutes.Where(x => x.Name.ToLower(MainApp.DefaultCultureInfo).Contains(
+                           Uri.UnescapeDataString(namePart).ToLower(MainApp.DefaultCultureInfo))).Distinct();
             return GetResponse(obj, typeof(InstituteMap));
         }
 
@@ -64,7 +66,7 @@ namespace VstupInfoParser
                 List<string> names = new List<string>();
                 foreach (var i in obj)
                 {
-                    await i.Fetch();
+                    await i.FetchAsync();
                     names.Add(i.Name + '_' + year + '_' + i.GlobalId);
                     list.Add(i.Students);
                 }
@@ -94,7 +96,7 @@ namespace VstupInfoParser
                 .FirstOrDefault(x => x.GlobalId == gId);
             if (q != default)
             {
-                await q.Fetch();
+                await q.FetchAsync();
                 return GetResponse(q.Students, typeof(SpecialtyMap));
             }
 
@@ -115,8 +117,8 @@ namespace VstupInfoParser
 
         private async Task<Region> GetRegion(int year, string name)
         {
-            var reg = CoreParser.Current.GetForRegion(year, Uri.UnescapeDataString(name));
-            await reg.Fetch();
+            var reg = CurrentParser.GetForRegion(year, Uri.UnescapeDataString(name));
+            await reg.FetchAsync();
             return reg;
         }
 
@@ -124,10 +126,11 @@ namespace VstupInfoParser
             (int year, string region, string namePart, string type)
         {
             var reg = await GetRegion(year, region);
-            var obj = reg.Institutes.Where(x => x.Name.ToLower(_ci).Contains(
-                           Uri.UnescapeDataString(namePart).ToLower(_ci))).Distinct().FirstOrDefault();
+            var p = Uri.UnescapeDataString(namePart).ToLower(MainApp.DefaultCultureInfo);
+            var obj = reg.Institutes.Where(x => 
+                x.Name.ToLower(MainApp.DefaultCultureInfo).Contains(p)).Distinct().FirstOrDefault();
             if (obj == default) return default;
-            await obj.Fetch();
+            await obj.FetchAsync();
             var pType = (Institute.StudyType)Enum.Parse(typeof(Institute.StudyType), type);
 
             return obj.Specialties[pType];

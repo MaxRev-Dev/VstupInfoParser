@@ -51,9 +51,9 @@ namespace VstupInfoParser.Extensions
             }
             if (createArchiveName != null)
             {
-                using (var fileStream = new FileStream(Path.Combine(path, createArchiveName + ".zip"),
-                    FileMode.CreateNew))
-
+                var f = Path.Combine(path, createArchiveName + ".zip");
+                var fex = File.Exists(f);
+                using (var fileStream = new FileStream(f, fex ? FileMode.Truncate : FileMode.CreateNew))
                 using (var archive = new ZipArchive(fileStream, ZipArchiveMode.Create))
                 {
                     foreach (var file in res)
