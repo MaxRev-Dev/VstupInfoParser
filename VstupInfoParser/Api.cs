@@ -126,14 +126,14 @@ namespace VstupInfoParser
         private async Task<Region> GetRegion(int year, string name)
         {
             var reg = CurrentParser.GetForRegion(year, Uri.UnescapeDataString(name));
-            await reg.FetchAsync();
+            await reg.FetchAsync().ConfigureAwait(false);
             return reg;
         }
 
         private async Task<IEnumerable<Specialty>> GetForSpecialtyQuery
             (int year, string region, string namePart, string type)
         {
-            var reg = await GetRegion(year, region);
+            var reg = await GetRegion(year, region).ConfigureAwait(false);
             var p = Uri.UnescapeDataString(namePart).ToLower(MainApp.DefaultCultureInfo);
             var obj = reg.Institutes.Where(x =>
                 x.Name.ToLower(MainApp.DefaultCultureInfo).Contains(p)).Distinct().FirstOrDefault();

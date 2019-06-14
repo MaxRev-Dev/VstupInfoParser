@@ -18,7 +18,11 @@ namespace VstupInfoParser.ModelsJSON
         protected abstract void Parse(HtmlDocument doc);
         public async Task FetchAsync()
         {
-            if (Fetched != default) return;
+            if (Fetched != default)
+            {
+                return;
+            }
+
             Fetched = DateTime.Now;
             try
             {

@@ -60,7 +60,10 @@ namespace VstupInfoParser.ModelsJSON
             {
                 var q = i.Descendants("div").Where(x => x.HasClass("tabbable")).ToArray();
                 if (q.Any() == false)
+                {
                     continue;
+                }
+
                 var form = i.Descendants("div").First(x => x.HasClass("accordion-heading"));
                 var stype = form.Descendants("a").First().InnerText;
 
@@ -91,7 +94,10 @@ namespace VstupInfoParser.ModelsJSON
                         var link = abtn == default ? null : '/' + Year.ToString() + abtn.GetAttributeValue("href", null).Trim('.');
 
                         if (!Specialties.ContainsKey(stypev))
+                        {
                             Specialties[stypev] = new List<Specialty>();
+                        }
+
                         var namex = map.FirstOrDefault(x => x.Key.ToLower()
                             .Contains("освітня прог".ToLower(CultureInfo.InvariantCulture)));
                         if (string.IsNullOrEmpty(namex.Key))

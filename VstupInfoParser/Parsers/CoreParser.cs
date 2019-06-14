@@ -19,13 +19,17 @@ namespace VstupInfoParser.Parsers
 
         public static string FromBase(string url)
         {
-            if (url == null) return null;
+            if (url == null)
+            {
+                return null;
+            }
+
             return Host.Trim('/') + url.Trim('.');
         }
         internal async Task FetchTableAsync()
         {
             var drt = new DynamicRegionTable(Host);
-            await drt.FetchAsync();
+            await drt.FetchAsync().ConfigureAwait(false);
             RegionTable = drt;
         }
 
@@ -40,9 +44,12 @@ namespace VstupInfoParser.Parsers
 
         public Region GetForRegion(int year, string regionName)
         {
-            if (GetForYear(year) is var table && table != null)
+            if (GetForYear(year) is var table)
             {
-                return table.Regions.Values.FirstOrDefault(x => x.Name.Contains(regionName)) as Region;
+                if (table != null)
+                {
+                    return table.Regions.Values.FirstOrDefault(x => x.Name.Contains(regionName)) as Region;
+                }
             }
             return default;
         }

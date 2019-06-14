@@ -14,7 +14,7 @@ namespace VstupInfoParser.Extensions
         public static IEnumerable<object> ToCsvFile<T>
             (this IEnumerable<IEnumerable<T>> xrecords,
             IEnumerable<string> xnames, string path,
-            Type map = null, string fromWeb = null, string createArchiveName = null)
+            Type map, string fromWeb, string createArchiveName)
         {
             List<IEnumerable<T>> records = xrecords.ToList();
             List<string> names = xnames.ToList();
