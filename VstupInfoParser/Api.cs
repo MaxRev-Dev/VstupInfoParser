@@ -4,9 +4,13 @@ using MaxRev.Servers.Interfaces;
 using MaxRev.Utils.Methods;
 using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
+using System.Net;
+using System.Text;
 using System.Threading.Tasks;
 using Microsoft.Extensions.DependencyInjection;
+using Newtonsoft.Json;
 using VstupInfoParser.Extensions;
 using VstupInfoParser.ModelsJSON;
 using VstupInfoParser.Parsers;
@@ -58,7 +62,7 @@ namespace VstupInfoParser
             if (Info.Query.HasKey("faculty"))
             {
                 obj = obj.Where(x => x.Faculty != null &&
-                x.Faculty.ToLower().Contains(Info.Query["faculty"]));
+                x.Faculty.Contains(Info.Query["faculty"], StringComparison.InvariantCultureIgnoreCase));
             }
             if (Info.Query.HasKey("to_files"))
             {
@@ -109,10 +113,15 @@ namespace VstupInfoParser
             var text = obj.ToCsv(type);
             if (Info.Query.HasKey("csv"))
             {
-                return Builder.Content(text).ContentType("text/csv").Build();
+                var mem = new MemoryStream();
+                using (var wr = new StreamWriter(mem, Encoding.UTF8, 4096, true))
+                {
+                    JsonSerializer.CreateDefault().Serialize(wr, text);
+                }
+
+                return SendFile(mem, WebUtility.UrlDecode(Info.Action).Slugify(), "text/csv");
             }
-            else
-                return Ok(obj.Serialize());
+            return Ok(obj.Serialize());
         }
 
         private async Task<Region> GetRegion(int year, string name)
@@ -127,7 +136,7 @@ namespace VstupInfoParser
         {
             var reg = await GetRegion(year, region);
             var p = Uri.UnescapeDataString(namePart).ToLower(MainApp.DefaultCultureInfo);
-            var obj = reg.Institutes.Where(x => 
+            var obj = reg.Institutes.Where(x =>
                 x.Name.ToLower(MainApp.DefaultCultureInfo).Contains(p)).Distinct().FirstOrDefault();
             if (obj == default) return default;
             await obj.FetchAsync();
