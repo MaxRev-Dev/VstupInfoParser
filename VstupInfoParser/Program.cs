@@ -2,11 +2,11 @@
 
 namespace VstupInfoParser
 {
-    internal class Program
+    internal static class Program
     {
         private static Task Main(string[] args)
         {
-            return MainApp.GetApp.Initialize(args);
+            return MainApp.Initialize(args);
         }
     }
 }

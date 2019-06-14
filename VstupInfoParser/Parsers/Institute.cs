@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Globalization;
 using System.Linq;
 using System.Net;
 using System.Text.RegularExpressions;
@@ -92,15 +93,19 @@ namespace VstupInfoParser.ModelsJSON
                         if (!Specialties.ContainsKey(stypev))
                             Specialties[stypev] = new List<Specialty>();
                         var namex = map.FirstOrDefault(x => x.Key.ToLower()
-                            .Contains("освітня прог".ToLower()));
+                            .Contains("освітня прог".ToLower(CultureInfo.InvariantCulture)));
                         if (string.IsNullOrEmpty(namex.Key))
                         {
                             namex = map.FirstOrDefault(x => x.Key.ToLower()
-                                .Contains("спеціальн".ToLower()));
+                                .Contains("спеціальн".ToLower(CultureInfo.InvariantCulture)));
                         }
                         var g = link?.Substring(link.LastIndexOf('p') + 1).Replace(".html", "");
                         var gId = link == default ? -1 : int.Parse(g);
-                        if (link == null) continue;
+                        if (link == null)
+                        {
+                            continue;
+                        }
+
                         Specialties[stypev].Add(new Specialty(namex.Equals(default) ? null : namex.Value, gId, type, stypev,
                             CoreParser.FromBase(link), Year, map));
                     }

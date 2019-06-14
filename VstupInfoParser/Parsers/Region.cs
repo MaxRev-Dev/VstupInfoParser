@@ -1,5 +1,4 @@
-﻿using System;
-using System.Linq;
+﻿using System.Linq;
 using HtmlAgilityPack;
 using VstupInfoParser.Parsers;
 
@@ -26,9 +25,7 @@ namespace VstupInfoParser.ModelsJSON
                         var href = a.Attributes["href"].Value;
                         string stryear = href.Substring(3, href.IndexOf('i', 4) - 3);
                         int year = int.Parse(stryear);
-                        string strregion = href.Substring(href.IndexOf(stryear, 3, StringComparison.Ordinal) + 5).Replace(".html", "");
-                        int unused = int.Parse(strregion);
-
+                        
                         Institutes.Add(new Institute(a.InnerText,
                             CoreParser.FromBase('/' + year.ToString() + href.Trim('.')), year).SetType(name));
                     }

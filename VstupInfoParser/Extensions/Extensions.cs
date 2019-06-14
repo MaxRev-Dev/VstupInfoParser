@@ -28,6 +28,7 @@ namespace VstupInfoParser.Extensions
                 using (var csvWriter = new CsvWriter(streamWriter))
                 {
                     if (map != null)
+                    {
                         try
                         {
                             csvWriter.Configuration.RegisterClassMap(map);
@@ -36,6 +37,7 @@ namespace VstupInfoParser.Extensions
                         {
                             // ignored
                         }
+                    }
 
                     try
                     {

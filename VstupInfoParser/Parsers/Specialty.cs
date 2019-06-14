@@ -4,10 +4,12 @@ using System.Linq;
 using System.Net;
 using System.Text.RegularExpressions;
 using HtmlAgilityPack;
+using Newtonsoft.Json;
+using Newtonsoft.Json.Converters;
 
 namespace VstupInfoParser.ModelsJSON
 {
-    public partial class Specialty : ModelsJSON.Instance
+    public class Specialty : Instance
     {
         public Specialty(string name, int gId,
             Institute.Degree degree,
@@ -36,11 +38,16 @@ namespace VstupInfoParser.ModelsJSON
                     .ToDictionary(x => x.Key, x => x.Value);
                 var tx = tb.Descendants("tbody").FirstOrDefault();
                 if (tx != default && header != default)
+                {
                     foreach (var i in tx.Descendants("tr"))
                     {
                         var cells = i.Descendants("td").ToArray();
                         string proc(string a) => WebUtility.HtmlDecode(a)?.Trim();
-                        if (cells.Length < 4) continue;
+                        if (cells.Length < 4)
+                        {
+                            continue;
+                        }
+
                         int p = 0;
 
                         string SetAndGoNext() => proc(cells.ElementAt(p++).InnerText);
@@ -80,7 +87,24 @@ namespace VstupInfoParser.ModelsJSON
                             Origs = origs
                         });
                     }
+                }
             }
-        } 
+        }
+
+        [JsonProperty("gID")]
+        public int GlobalId { get; private set; }
+        [JsonProperty("students")]
+        public List<Student> Students { get; } = new List<Student>();
+        [JsonProperty("degree")]
+        [JsonConverter(typeof(StringEnumConverter))]
+        public Institute.Degree Degree { get; }
+        [JsonProperty("time_type")]
+        [JsonConverter(typeof(StringEnumConverter))]
+        public Institute.StudyType Type { get; }
+        [JsonProperty("info_map")]
+        public IEnumerable<KeyValuePair<string, string>> Map { get; }
+
+        [JsonProperty("faculty")]
+        public string Faculty => Map?.FirstOrDefault(x => x.Key.ToLower().Contains("факул")).Value;
     }
 }

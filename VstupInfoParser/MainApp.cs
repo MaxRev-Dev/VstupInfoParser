@@ -12,12 +12,9 @@ namespace VstupInfoParser
 {
     internal class MainApp
     {
-        private static MainApp _app;
-        public static MainApp GetApp => _app ?? (_app = new MainApp());
-
         internal static readonly CultureInfo DefaultCultureInfo = new CultureInfo("uk-UA");
         public enum Dirs { TmpCsv }
-        public Task Initialize(string[] args)
+        public static Task Initialize(string[] args)
         {
             Console.OutputEncoding = Encoding.UTF8;
             // or just use ReactorStartup.Default;
@@ -58,11 +55,10 @@ namespace VstupInfoParser
             return runtime.RunAsync();
         }
 
-        private async void EventMaster_ServerStarting(IServer sender, object args = null)
+        private static async void EventMaster_ServerStarting(IServer sender, object args = null)
         {
             var currentParser = sender.Parent.Services.GetRequiredService<CoreParser>();
-            await currentParser.FetchTableAsync();
-            Console.WriteLine("Parser is ready!");
+            await currentParser.FetchTableAsync(); 
         }
     }
 }

@@ -10,7 +10,6 @@ using System.Net;
 using System.Text;
 using System.Threading.Tasks;
 using Microsoft.Extensions.DependencyInjection;
-using Newtonsoft.Json;
 using VstupInfoParser.Extensions;
 using VstupInfoParser.ModelsJSON;
 using VstupInfoParser.Parsers;
@@ -31,14 +30,14 @@ namespace VstupInfoParser
         [Route("region/{year}/{name}")]
         public async Task<IResponseInfo> GetMainTable(int year, string name)
         {
-            var reg = await GetRegion(year, name);
+            var reg = await GetRegion(year, name).ConfigureAwait(false);
 
             return Ok(reg.Institutes.Distinct().Serialize());
         }
         [Route("instances/{year}/{region}/{namePart}")]
         public async Task<IResponseInfo> GetMainTable(int year, string region, string namePart)
         {
-            var reg = await GetRegion(year, region);
+            var reg = await GetRegion(year, region).ConfigureAwait(false); 
             var obj = reg.Institutes.Where(x => x.Name.ToLower(MainApp.DefaultCultureInfo).Contains(
                            Uri.UnescapeDataString(namePart).ToLower(MainApp.DefaultCultureInfo))).Distinct();
             return GetResponse(obj, typeof(InstituteMap));
@@ -48,7 +47,7 @@ namespace VstupInfoParser
         public async Task<IResponseInfo> GetForSpecialty
             (int year, string region, string namePart, string type)
         {
-            var obj = await GetForSpecialtyQuery(year, region, namePart, type);
+            var obj = await GetForSpecialtyQuery(year, region, namePart, type).ConfigureAwait(false); 
             return GetResponse(obj, typeof(SpecialtyMap));
         }
 
@@ -57,7 +56,7 @@ namespace VstupInfoParser
             (int year, string region, string namePart, string type, string degree)
         {
             var pDegree = (Institute.Degree)Enum.Parse(typeof(Institute.Degree), degree);
-            var obj = (await GetForSpecialtyQuery(year, region, namePart, type))
+            var obj = (await GetForSpecialtyQuery(year, region, namePart, type).ConfigureAwait(false))
                 .Where(x => x.Degree == pDegree);
             if (Info.Query.HasKey("faculty"))
             {
@@ -70,7 +69,7 @@ namespace VstupInfoParser
                 List<string> names = new List<string>();
                 foreach (var i in obj)
                 {
-                    await i.FetchAsync();
+                    await i.FetchAsync().ConfigureAwait(false);
                     names.Add(i.Name + '_' + year + '_' + i.GlobalId);
                     list.Add(i.Students);
                 }
@@ -93,7 +92,7 @@ namespace VstupInfoParser
         public async Task<IResponseInfo> GetForGlobalId
             (int year, string region, string namePart, string type, string degree, int gId)
         {
-            var obj = await GetForSpecialtyQuery(year, region, namePart, type);
+            var obj = await GetForSpecialtyQuery(year, region, namePart, type).ConfigureAwait(false);
             var pDegree = (Institute.Degree)Enum.Parse(typeof(Institute.Degree), degree);
             var q = obj
                 .Where(x => x.Degree == pDegree)
@@ -110,13 +109,13 @@ namespace VstupInfoParser
 
         private IResponseInfo GetResponse<T>(IEnumerable<T> obj, Type type = null)
         {
-            var text = obj.ToCsv(type);
             if (Info.Query.HasKey("csv"))
             {
+                var text = obj.ToCsv(type);
                 var mem = new MemoryStream();
                 using (var wr = new StreamWriter(mem, Encoding.UTF8, 4096, true))
                 {
-                    JsonSerializer.CreateDefault().Serialize(wr, text);
+                    wr.WriteAsync(text).Wait();
                 }
 
                 return SendFile(mem, WebUtility.UrlDecode(Info.Action).Slugify(), "text/csv");
@@ -138,8 +137,12 @@ namespace VstupInfoParser
             var p = Uri.UnescapeDataString(namePart).ToLower(MainApp.DefaultCultureInfo);
             var obj = reg.Institutes.Where(x =>
                 x.Name.ToLower(MainApp.DefaultCultureInfo).Contains(p)).Distinct().FirstOrDefault();
-            if (obj == default) return default;
-            await obj.FetchAsync();
+            if (obj == default)
+            {
+                return default;
+            }
+
+            await obj.FetchAsync().ConfigureAwait(false);
             var pType = (Institute.StudyType)Enum.Parse(typeof(Institute.StudyType), type);
 
             return obj.Specialties[pType];
