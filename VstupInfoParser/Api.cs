@@ -37,7 +37,7 @@ namespace VstupInfoParser
         [Route("instances/{year}/{region}/{namePart}")]
         public async Task<IResponseInfo> GetMainTable(int year, string region, string namePart)
         {
-            var reg = await GetRegion(year, region).ConfigureAwait(false); 
+            var reg = await GetRegion(year, region).ConfigureAwait(false);
             var obj = reg.Institutes.Where(x => x.Name.ToLower(MainApp.DefaultCultureInfo).Contains(
                            Uri.UnescapeDataString(namePart).ToLower(MainApp.DefaultCultureInfo))).Distinct();
             return GetResponse(obj, typeof(InstituteMap));
@@ -47,7 +47,7 @@ namespace VstupInfoParser
         public async Task<IResponseInfo> GetForSpecialty
             (int year, string region, string namePart, string type)
         {
-            var obj = await GetForSpecialtyQuery(year, region, namePart, type).ConfigureAwait(false); 
+            var obj = await GetForSpecialtyQuery(year, region, namePart, type).ConfigureAwait(false);
             return GetResponse(obj, typeof(SpecialtyMap));
         }
 
@@ -63,20 +63,27 @@ namespace VstupInfoParser
                 obj = obj.Where(x => x.Faculty != null &&
                 x.Faculty.Contains(Info.Query["faculty"], StringComparison.InvariantCultureIgnoreCase));
             }
+
+            var final = obj.Select(x =>
+            {
+                x.FetchAsync().Wait();
+                return x;
+            });
+
+
             if (Info.Query.HasKey("to_files"))
             {
                 List<IEnumerable<Student>> list = new List<IEnumerable<Student>>();
                 List<string> names = new List<string>();
-                foreach (var i in obj)
-                {
-                    await i.FetchAsync().ConfigureAwait(false);
+                foreach (var i in final)
+                { 
                     names.Add(i.Name + '_' + year + '_' + i.GlobalId);
                     list.Add(i.Students);
                 }
                 return AsFileResponse(list, names, typeof(StudentsMap),
                     string.Join('_', Uri.UnescapeDataString(region), Uri.UnescapeDataString(namePart), year, type, degree));
             }
-            return GetResponse(obj, typeof(SpecialtyMap));
+            return GetResponse(final, typeof(SpecialtyMap));
         }
 
         private IResponseInfo AsFileResponse<T>(IEnumerable<IEnumerable<T>> obj,
